@@ -1,0 +1,38 @@
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go_api
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      DB_PATH: /app/data/app.db
+    volumes:
+      - ./app.db:/app/app.db
+      - ./configuration:/app/configuration:ro
+    expose:
+      - "8080"
+    networks:
+      - backend
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "8888:8888"
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - api
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge

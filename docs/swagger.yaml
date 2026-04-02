@@ -1,0 +1,1339 @@
+basePath: /
+definitions:
+  controller.signInInput:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  db.Card:
+    properties:
+      balance:
+        type: number
+      card_number:
+        type: string
+      id:
+        type: integer
+      is_blocked:
+        type: boolean
+      key_id:
+        type: integer
+      owner_name:
+        type: string
+    type: object
+  db.Key:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      value:
+        type: string
+    type: object
+  db.Terminal:
+    properties:
+      address:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      serial_number:
+        type: string
+    type: object
+  db.Transaction:
+    properties:
+      amount:
+        type: number
+      card_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      terminal_id:
+        type: integer
+    required:
+    - amount
+    type: object
+  db.UpdateCard:
+    properties:
+      balance:
+        type: number
+      card_number:
+        type: string
+      is_blocked:
+        type: boolean
+      key_id:
+        type: integer
+      owner_name:
+        type: string
+    type: object
+  db.UpdateKey:
+    properties:
+      name:
+        type: string
+      value:
+        type: string
+    type: object
+  db.UpdateTerminal:
+    properties:
+      address:
+        type: string
+      name:
+        type: string
+      serial_number:
+        type: string
+    type: object
+  db.UpdateTransaction:
+    properties:
+      amount:
+        type: number
+      card_id:
+        type: integer
+      terminal_id:
+        type: integer
+    type: object
+  db.UpdateUser:
+    properties:
+      is_admin:
+        type: integer
+      login:
+        type: string
+    required:
+    - login
+    type: object
+  db.User:
+    properties:
+      id:
+        type: integer
+      is_admin:
+        type: integer
+      login:
+        type: string
+      password:
+        type: string
+    required:
+    - login
+    - password
+    type: object
+host: localhost:8888
+info:
+  contact: {}
+  description: RESTful API server for MIFARE transactions authorization
+  title: MIFARE API
+  version: "0.1"
+paths:
+  /auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: Ввод логина и пароля для получения токена доступа
+      parameters:
+      - description: Логин и пароль
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controller.signInInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Возвращает JWT токен
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка авторизации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Авторизация пользователя
+      tags:
+      - auth
+  /auth/sign-up:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя в системе
+      parameters:
+      - description: Данные пользователя (login, password, is_admin)
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Возвращает ID созданного пользователя
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация пользователя
+      tags:
+      - auth
+  /cards:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех карт
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список карт
+          schema:
+            items:
+              $ref: '#/definitions/db.Card'
+            type: array
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение всех карт
+      tags:
+      - cards
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую карту в систему
+      parameters:
+      - description: Данные карты
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.Card'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID созданной карты
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание карты
+      tags:
+      - cards
+  /cards/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет карту по ID
+      parameters:
+      - description: ID карты
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно удалено
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление карты
+      tags:
+      - cards
+    get:
+      consumes:
+      - application/json
+      description: Возвращает данные карты по идентификатору
+      parameters:
+      - description: ID карты
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные карты
+          schema:
+            $ref: '#/definitions/db.Card'
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение карты по ID
+      tags:
+      - cards
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные существующей карты
+      parameters:
+      - description: ID карты
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.UpdateCard'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно обновлено
+        "400":
+          description: Неверные параметры или ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновление карты
+      tags:
+      - cards
+  /keys:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех ключей
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список ключей
+          schema:
+            items:
+              $ref: '#/definitions/db.Key'
+            type: array
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение всех ключей
+      tags:
+      - keys
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новый ключ доступа
+      parameters:
+      - description: Данные ключа
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.Key'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID ключа
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание ключа
+      tags:
+      - keys
+  /keys/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет ключ по ID
+      parameters:
+      - description: ID ключа
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно удалено
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление ключа
+      tags:
+      - keys
+    get:
+      consumes:
+      - application/json
+      description: Возвращает данные ключа по идентификатору
+      parameters:
+      - description: ID ключа
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные ключа
+          schema:
+            $ref: '#/definitions/db.Key'
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение ключа по ID
+      tags:
+      - keys
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные ключа
+      parameters:
+      - description: ID ключа
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.UpdateKey'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно обновлено
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновление ключа
+      tags:
+      - keys
+  /terminals:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех терминалов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список терминалов
+          schema:
+            items:
+              $ref: '#/definitions/db.Terminal'
+            type: array
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение всех терминалов
+      tags:
+      - terminals
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новый терминал
+      parameters:
+      - description: Данные терминала
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.Terminal'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID терминала
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание терминала
+      tags:
+      - terminals
+  /terminals/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет терминал по ID
+      parameters:
+      - description: ID терминала
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно удалено
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление терминала
+      tags:
+      - terminals
+    get:
+      consumes:
+      - application/json
+      description: Возвращает данные терминала по идентификатору
+      parameters:
+      - description: ID терминала
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные терминала
+          schema:
+            $ref: '#/definitions/db.Terminal'
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение терминала по ID
+      tags:
+      - terminals
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные терминала
+      parameters:
+      - description: ID терминала
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.UpdateTerminal'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно обновлено
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновление терминала
+      tags:
+      - terminals
+  /transactions:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех транзакций
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список транзакций
+          schema:
+            items:
+              $ref: '#/definitions/db.Transaction'
+            type: array
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение всех транзакций
+      tags:
+      - transactions
+    post:
+      consumes:
+      - application/json
+      description: Создает новую транзакцию
+      parameters:
+      - description: Данные транзакции
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.Transaction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID транзакции
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание транзакции
+      tags:
+      - transactions
+  /transactions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет транзакцию по ID
+      parameters:
+      - description: ID транзакции
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно удалено
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление транзакции
+      tags:
+      - transactions
+    get:
+      consumes:
+      - application/json
+      description: Возвращает данные транзакции по идентификатору
+      parameters:
+      - description: ID транзакции
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные транзакции
+          schema:
+            $ref: '#/definitions/db.Transaction'
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение транзакции по ID
+      tags:
+      - transactions
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные транзакции
+      parameters:
+      - description: ID транзакции
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.UpdateTransaction'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно обновлено
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Нет доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновление транзакции
+      tags:
+      - transactions
+  /transactions/{id}/authorize:
+    post:
+      consumes:
+      - application/json
+      description: Пытается провести авторизацию транзакции по ID
+      parameters:
+      - description: ID транзакции
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статус операции (approved/declined)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Авторизация транзакции
+      tags:
+      - transactions
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех пользователей (доступно всем авторизованным)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список пользователей в поле data
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение всех пользователей
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя (требуется роль администратора)
+      parameters:
+      - description: Данные пользователя (login, password, role)
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ID созданного пользователя
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Неверные параметры
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав (требуется администратор)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создание пользователя
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет пользователя по ID (требуется роль администратора)
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно удалено
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав (требуется администратор)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Удаление пользователя
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Возвращает данные пользователя по идентификатору (доступно всем
+        авторизованным)
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Данные пользователя
+          schema:
+            $ref: '#/definitions/db.User'
+        "400":
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получение пользователя по ID
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные пользователя (требуется роль администратора)
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Данные для обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/db.UpdateUser'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Успешно обновлено
+        "400":
+          description: Неверные параметры или ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Не авторизован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Недостаточно прав (требуется администратор)
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновление пользователя
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: 'Введите токен в формате: "Bearer <token>"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
