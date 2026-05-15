@@ -71,7 +71,7 @@ func (h *Handler) authorizeTransaction(c *gin.Context) {
 
 	if err != nil {
 		if errors.Is(err, service.ErrNotEnoughFund) {
-			c.JSON(http.StatusOK, gin.H{
+			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  "declined",
 				"message": err.Error(),
 			})
