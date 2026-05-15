@@ -15,6 +15,7 @@ const (
 
 type Authorization interface {
 	CreateUser(user db.User) (int, error)
+	GetUserByUsername(username string) (db.User, error)
 	GetUserByUsernameAndPassword(username string, password string) (db.User, error)
 }
 

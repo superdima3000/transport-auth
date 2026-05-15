@@ -1,10 +1,13 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/superdima3000/transport-auth/db"
+	"github.com/superdima3000/transport-auth/pkg/service"
 )
 
 type signInInput struct {
@@ -31,8 +34,9 @@ func (h *Handler) signUp(c *gin.Context) {
 	}
 
 	id, err := h.services.Authorization.CreateUser(input)
-	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+
+	if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		newErrorResponse(c, http.StatusConflict, "user already exists") // 409
 		return
 	}
 
@@ -58,6 +62,12 @@ func (h *Handler) signIn(c *gin.Context) {
 	}
 
 	token, err := h.services.Authorization.GenerateToken(input.Login, input.Password)
+	if errors.Is(err, service.ErrUserNotFound) {
+		newErrorResponse(c, http.StatusNotFound, err.Error())
+	}
+	if errors.Is(err, service.ErrInvalidPassword) {
+		newErrorResponse(c, http.StatusNotFound, err.Error())
+	}
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

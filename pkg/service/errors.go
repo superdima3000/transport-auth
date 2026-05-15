@@ -31,4 +31,5 @@ var (
 	ErrTransactionNotFound = NewAppError(nil, "transaction not found", http.StatusBadRequest)
 	ErrInvalidAmount       = NewAppError(nil, "invalid amount", http.StatusBadRequest)
 	ErrUserNotFound        = NewAppError(nil, "user not found", http.StatusBadRequest)
+	ErrInvalidPassword     = NewAppError(nil, "invalid password", http.StatusBadRequest)
 )

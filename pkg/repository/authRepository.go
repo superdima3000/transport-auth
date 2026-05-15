@@ -21,11 +21,23 @@ func (r *AuthRepository) CreateUser(user db.User) (int, error) {
 	query := fmt.Sprintf("INSERT INTO %s (login, password, is_admin) values (?, ?, ?) RETURNING id", usersTable)
 
 	row := r.db.QueryRow(query, user.Login, user.Password, user.IsAdmin)
+
 	if err := row.Scan(&id); err != nil {
 		return 0, err
 	}
 
 	return id, nil
+}
+
+func (r *AuthRepository) GetUserByUsername(username string) (db.User, error) {
+	var user db.User
+
+	query := fmt.Sprintf("SELECT id, login, password, is_admin FROM %s WHERE login = ?", usersTable)
+	err := r.db.Get(&user, query, username)
+
+	logrus.Infof("user: %v", user)
+
+	return user, err
 }
 
 func (r *AuthRepository) GetUserByUsernameAndPassword(username string, password string) (db.User, error) {

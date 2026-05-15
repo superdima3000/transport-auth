@@ -2,6 +2,8 @@ package service
 
 import (
 	"crypto/sha1"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -33,9 +35,18 @@ func (s *AuthService) CreateUser(user db.User) (int, error) {
 }
 
 func (s *AuthService) GenerateToken(login string, password string) (string, error) {
-	user, err := s.repo.GetUserByUsernameAndPassword(login, s.generatePasswordHash(password))
+	user, err := s.repo.GetUserByUsername(login)
+	passwordHash := s.generatePasswordHash(password)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", ErrUserNotFound
+	}
 	if err != nil {
 		return "", err
+	}
+
+	if user.Password != passwordHash {
+		return "", ErrInvalidPassword
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
